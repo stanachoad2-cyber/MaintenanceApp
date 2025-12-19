@@ -67,6 +67,7 @@ type TicketStatus =
   | "Closed";
 
 interface MaintenanceTicket {
+  maintenance_result_other?: string;
   id: string;
   machine_id: string;
   machine_name: string;
@@ -382,7 +383,7 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     } else if (isSupplier) {
       text(remarkToShow, 140, 216, 14);
     } else if (isOtherResult) {
-      text(ticket.maintenance_result_other, 140, 225.5, 14);
+      text(ticket.maintenance_result_other || "", 140, 225.5, 14);
     }
 
     // --- MTTR ---
