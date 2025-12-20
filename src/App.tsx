@@ -2189,7 +2189,7 @@ function MaintenanceDashboard({
   }, [tickets]);
 
   const filteredTickets = useMemo(() => {
-    let result = [];
+    let result: MaintenanceTicket[] = [];
     switch (activeTab) {
       case 1:
         result = tickets.filter((t) => t.status === "Open");
