@@ -2333,8 +2333,11 @@ function MaintenanceDashboard({
     ticketsToExport.sort((a, b) => a.created_at - b.created_at);
 
     const doc = generateMaintenancePDF(ticketsToExport);
+
+    // ✅ แก้บรรทัดนี้: เติม .toString() เพื่อแปลงค่าให้เป็นตัวหนังสือ
     const blobUrl = doc.output("bloburl");
-    setPdfBlobUrl(blobUrl);
+    setPdfBlobUrl(blobUrl.toString());
+
     setShowPdfPreview(true);
   };
 
