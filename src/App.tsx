@@ -67,7 +67,6 @@ type TicketStatus =
   | "Closed";
 
 interface MaintenanceTicket {
-  maintenance_result_other?: string;
   id: string;
   machine_id: string;
   machine_name: string;
