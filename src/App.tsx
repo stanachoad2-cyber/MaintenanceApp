@@ -90,7 +90,7 @@ interface MaintenanceTicket {
   cause_category_other?: string;
   spare_parts?: { name: string; qty: number }[];
   maintenance_result?: string;
-  maintenance_result_other?: string; // ✅ ต้องมีตัวนี้
+  maintenance_result_other?: string; // ✅ ต้องมีอันนี้
   result_remark?: string;
   start_time?: any;
   end_time?: any;
@@ -102,8 +102,10 @@ interface MaintenanceTicket {
   approved_by?: string;
   approved_at?: any;
   closed_at?: any;
-  images?: string[];
-  image_url?: string; // ✅ เพิ่มตัวนี้เพื่อให้โค้ดหน้ารายละเอียดไม่ Error
+
+  images?: string[]; // อันเดิมที่มีอยู่
+  image_url?: string; // ✅✅ เพิ่มบรรทัดนี้ครับ (สำคัญมาก!)
+
   created_at: any;
   updated_at: any;
 }
