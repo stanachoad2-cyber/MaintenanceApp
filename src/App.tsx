@@ -1587,11 +1587,8 @@ function CreateTicketModal({
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
-      const msg = `🚨 <b>มีงานแจ้งซ่อมใหม่!</b>\n\n
-      ⚙️ <b>เครื่อง:</b> ${machineName}\n
-      ⚠️ <b>อาการ:</b> ${issueItem}\
-      🏢 <b>แผนก:</b> ${department}\n
-      👤 <b>ผู้แจ้ง:</b> ${user.fullname}`;
+      const msg = `🚨 <b>มีงานแจ้งซ่อมใหม่</b>\n\n<b>เครื่อง:</b> ${machineName}\n<b>อาการ:</b> ${issueItem}\n<b>แผนก:</b> ${department}\n<b>ผู้แจ้ง:</b> ${user.fullname}`;
+
       sendTelegram(msg);
       onClose();
     } catch (e) {
