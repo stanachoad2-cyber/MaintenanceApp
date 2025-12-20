@@ -54,6 +54,29 @@ import {
 } from "lucide-react";
 
 // ==========================================
+// TELEGRAM CONFIG (แจ้งเตือนกลุ่มช่าง)
+// ==========================================
+const TELEGRAM_TOKEN = "7821387231:AAHBHIpcmA8fckoR3kRxJmnU90TJd8JnzYM";
+const TELEGRAM_CHAT_ID = "-5033478244"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
+
+const sendTelegram = async (message: string) => {
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message,
+        parse_mode: "HTML", // เพื่อให้ทำตัวหนาได้
+      }),
+    });
+  } catch (err) {
+    console.error("Telegram Error:", err);
+  }
+};
+
+// ==========================================
 // 1. TYPES & HELPERS
 // ==========================================
 
@@ -1564,6 +1587,8 @@ function CreateTicketModal({
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
+      const msg = `🚨 <b>มีงานแจ้งซ่อมใหม่!</b> (New Ticket)\n\n🆔 <b>เลขที่:</b> ${newTicketId}\n⚙️ <b>เครื่อง:</b> ${machineName}\n⚠️ <b>อาการ:</b> ${issueItem}\n📍 <b>สถานที่:</b> ${factory} - ${area}\n🏢 <b>แผนก:</b> ${department}\n👤 <b>ผู้แจ้ง:</b> ${user.fullname}`;
+      sendTelegram(msg);
       onClose();
     } catch (e) {
       alert("เกิดข้อผิดพลาด: " + e);
