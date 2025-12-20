@@ -588,6 +588,18 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // ✅ 1. เพิ่มฟังก์ชันนี้: เมื่อกดช่องปุ๊บ ให้เลื่อนจอมารอรับคีย์บอร์ด
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    // รอ 0.3 วินาที ให้คีย์บอร์ดเด้งขึ้นมาให้สุดก่อน
+    setTimeout(() => {
+      e.target.scrollIntoView({
+        behavior: "smooth", // เลื่อนแบบนุ่มนวล
+        block: "center", // ให้ช่องกรอกข้อมูล มาอยู่ตรงกลางจอ
+      });
+    }, 300);
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -619,43 +631,56 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
       setLoading(false);
     }
   };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-orange-400 to-red-500 p-4">
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
-        <div className="flex justify-center mb-6">
-          <div className="bg-orange-100 p-4 rounded-full ring-4 ring-orange-50">
-            <Wrench size={48} className="text-orange-600" />
+    <>
+      <div className="fixed inset-0 bg-gradient-to-br from-orange-400 to-red-500 z-0"></div>
+
+      <div className="fixed inset-0 z-10 overflow-y-auto">
+        <div className="flex min-h-full flex-col items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
+            <div className="flex justify-center mb-6">
+              <div className="bg-orange-100 p-4 rounded-full ring-4 ring-orange-50">
+                <Wrench size={48} className="text-orange-600" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-center mb-1 text-gray-800">
+              Maintenance App
+            </h1>
+            <form onSubmit={handleLogin} className="space-y-4 mt-8">
+              <input
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white outline-none"
+                placeholder="Username"
+                value={u}
+                onChange={(e) => setU(e.target.value)}
+                // ✅ 2. เอาฟังก์ชันมาใส่ตรงนี้
+                onFocus={handleFocus}
+                autoFocus
+              />
+              <input
+                type="password"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white outline-none"
+                placeholder="Password"
+                value={p}
+                onChange={(e) => setP(e.target.value)}
+                // ✅ 3. และตรงนี้ด้วย
+                onFocus={handleFocus}
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 shadow-lg transition-all disabled:bg-gray-400"
+              >
+                {loading ? "Loading..." : "เข้าสู่ระบบ"}
+              </button>
+            </form>
           </div>
+          {/* เพิ่มพื้นที่ว่างด้านล่างเยอะหน่อย เพื่อให้มีที่เลื่อนหนีคีย์บอร์ด */}
+          <div className="h-32 shrink-0"></div>
         </div>
-        <h1 className="text-2xl font-bold text-center mb-1 text-gray-800">
-          Maintenance App
-        </h1>
-        <form onSubmit={handleLogin} className="space-y-4 mt-8">
-          <input
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white outline-none"
-            placeholder="Username"
-            value={u}
-            onChange={(e) => setU(e.target.value)}
-            autoFocus
-          />
-          <input
-            type="password"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white outline-none"
-            placeholder="Password"
-            value={p}
-            onChange={(e) => setP(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 shadow-lg transition-all disabled:bg-gray-400"
-          >
-            {loading ? "Loading..." : "เข้าสู่ระบบ"}
-          </button>
-        </form>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1011,8 +1036,11 @@ function TicketDetailModal({
     isSuperAdmin || (ticket.status === "In_Progress" && isTechnician);
 
   const labelClass = "text-[10px] font-bold text-black mb-1 block";
+
+  // ✅ 1. แก้ไข Class กลางจาก text-sm เป็น text-base (16px) เพื่อกัน Zoom
   const inputClass =
-    "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 h-10 bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors disabled:opacity-100 disabled:text-gray-900 disabled:bg-gray-100";
+    "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-base text-gray-900 h-10 bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors disabled:opacity-100 disabled:text-gray-900 disabled:bg-gray-100";
+
   const displayBoxClass =
     "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 h-10 flex items-center bg-gray-100";
 
@@ -1056,7 +1084,8 @@ function TicketDetailModal({
                   type="text"
                   value={editingId}
                   onChange={(e) => setEditingId(e.target.value)}
-                  className="w-full bg-white border border-red-200 rounded-lg px-3 py-1 text-sm text-red-700 font-bold focus:ring-2 focus:ring-red-200 outline-none"
+                  // ✅ 2. แก้ช่องนี้เป็น text-base
+                  className="w-full bg-white border border-red-200 rounded-lg px-3 py-1 text-base text-red-700 font-bold focus:ring-2 focus:ring-red-200 outline-none"
                 />
               </div>
             </div>
@@ -1079,7 +1108,6 @@ function TicketDetailModal({
                   <div className={displayBoxClass}>{ticket.issue_item}</div>
                 </div>
 
-                {/* ✅ เพิ่มช่องแสดงชื่อช่าง (Technician) */}
                 <div className="md:col-span-2">
                   <label className={labelClass}>
                     ช่างผู้ปฏิบัติงาน (Technician)
@@ -1177,7 +1205,8 @@ function TicketDetailModal({
                         {spareParts.map((part, idx) => (
                           <div key={idx} className="flex gap-2 items-center">
                             <input
-                              className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 h-8 bg-gray-100 focus:bg-white outline-none disabled:opacity-100 disabled:text-gray-900"
+                              // ✅ 3. แก้ช่องอะไหล่เป็น text-base
+                              className="flex-1 border border-gray-300 rounded px-2 py-1 text-base text-gray-900 h-8 bg-gray-100 focus:bg-white outline-none disabled:opacity-100 disabled:text-gray-900"
                               placeholder="ชื่ออะไหล่"
                               value={part.name}
                               onChange={(e) =>
@@ -1186,7 +1215,8 @@ function TicketDetailModal({
                               disabled={!isEditable}
                             />
                             <input
-                              className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-gray-900 text-center h-8 bg-gray-100 focus:bg-white outline-none disabled:opacity-100 disabled:text-gray-900"
+                              // ✅ 4. แก้ช่องจำนวนเป็น text-base
+                              className="w-16 border border-gray-300 rounded px-2 py-1 text-base text-gray-900 text-center h-8 bg-gray-100 focus:bg-white outline-none disabled:opacity-100 disabled:text-gray-900"
                               type="number"
                               placeholder="จำนวน"
                               value={part.qty}
@@ -1388,7 +1418,7 @@ function TicketDetailModal({
                 onClick={() => updateStatus("Start")}
                 className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all active:scale-[0.99]"
               >
-                กดรับงาน (Start Job)
+                รับงานซ่อม (Start Job)
               </button>
             )}
 
@@ -1397,21 +1427,21 @@ function TicketDetailModal({
                 onClick={() => updateStatus("ToVerify")}
                 className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700 shadow-md transition-all active:scale-[0.99]"
               >
-                ส่งผู้แจ้งตรวจสอบ (Send to Requester)
+                ซ่อมเรียบร้อย
               </button>
             )}
 
             {ticket.status === "Wait_Verify" && (
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 text-center">
                 <p className="text-purple-900 font-semibold mb-3">
-                  สถานะ: รอผู้แจ้งตรวจสอบงาน
+                  สถานะ: รอผู้แจ้งตรวจรับงาน
                 </p>
                 {isRequester && (
                   <button
                     onClick={() => updateStatus("ToLeader")}
                     className="w-full py-2 rounded-lg font-bold shadow-sm transition-all bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer"
                   >
-                    ยืนยันรับงาน (Confirm)
+                    ตรวจรับงาน (Confirm)
                   </button>
                 )}
               </div>
@@ -1427,7 +1457,7 @@ function TicketDetailModal({
                     onClick={() => updateStatus("ToApprove")}
                     className="w-full bg-indigo-600 text-white py-2 rounded-lg font-bold hover:bg-indigo-700 shadow-sm"
                   >
-                    อนุมัติผ่าน (Approve)
+                    ข้อมูลถูกต้องครบถ้วน
                   </button>
                 )}
               </div>
@@ -1436,14 +1466,14 @@ function TicketDetailModal({
             {ticket.status === "Wait_Approve" && (
               <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-center">
                 <p className="text-orange-900 font-semibold mb-3">
-                  สถานะ: รอ Supervisor อนุมัติปิดงาน
+                  สถานะ: รอ Approval
                 </p>
                 {isSupervisor && (
                   <button
                     onClick={() => updateStatus("Close")}
                     className="w-full bg-orange-600 text-white py-2 rounded-lg font-bold hover:bg-orange-700 shadow-sm"
                   >
-                    อนุมัติปิดงาน (Close)
+                    Approve
                   </button>
                 )}
               </div>
@@ -1587,7 +1617,7 @@ function CreateTicketModal({
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
-      const msg = `🚨 <b>มีงานแจ้งซ่อมใหม่</b>\n\n⚙️<b>เครื่อง:</b> ${machineName}\n⚠️<b>อาการ:</b> ${issueItem}\n🏢<b>แผนก:</b> ${department}\n👤<b>ผู้แจ้ง:</b> ${user.fullname}`;
+      const msg = `🏢<b>แผนก:</b> ${department}\n⚙️<b>เครื่อง:</b> ${machineName}\n⚠️<b>อาการ:</b> ${issueItem}\n👤<b>ผู้แจ้ง:</b> ${user.fullname}`;
 
       sendTelegram(msg);
       onClose();
@@ -1598,20 +1628,25 @@ function CreateTicketModal({
     }
   };
 
+  // ✅✅ KEY FIX: สร้าง Class กลางที่มี text-base (16px) เพื่อป้องกันการซูม
+  const inputClass =
+    "w-full border border-gray-300 p-2 rounded-lg text-base bg-white focus:ring-2 focus:ring-orange-200 outline-none";
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-5">
+      {/* เพิ่ม overflow-y-auto เพื่อให้หน้าจอเลื่อนได้ถ้าคีย์บอร์ดบัง */}
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-5 overflow-y-auto max-h-[90vh]">
         <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
           <Hammer className="text-orange-600" /> แจ้งซ่อม
         </h3>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">
+              <label className="text-xs font-bold text-gray-500 block mb-1">
                 แผนก
               </label>
               <select
-                className="w-full border p-1.5 rounded text-sm bg-white"
+                className={inputClass}
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
               >
@@ -1623,11 +1658,11 @@ function CreateTicketModal({
               </select>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">
+              <label className="text-xs font-bold text-gray-500 block mb-1">
                 ประเภทงาน
               </label>
               <select
-                className="w-full border p-1.5 rounded text-sm bg-white"
+                className={inputClass}
                 value={jobType}
                 onChange={(e) => setJobType(e.target.value)}
               >
@@ -1642,37 +1677,37 @@ function CreateTicketModal({
           </div>
           {jobType === "อื่นๆ" && (
             <input
-              className="w-full border p-1.5 rounded text-sm"
+              className={inputClass}
               placeholder="ระบุประเภทงาน..."
               value={otherJobType}
               onChange={(e) => setOtherJobType(e.target.value)}
             />
           )}
           <div>
-            <label className="text-[10px] text-gray-500 block mb-1">
+            <label className="text-xs font-bold text-gray-500 block mb-1">
               ชื่อเครื่องจักร / อุปกรณ์
             </label>
             <input
-              className="w-full border p-1.5 rounded text-sm"
+              className={inputClass}
               placeholder="Ex. CNC-01, ปั๊มน้ำ, แอร์..."
               value={machineName}
               onChange={(e) => setMachineName(e.target.value)}
             />
           </div>
           <div>
-            <label className="text-[10px] text-gray-500 block mb-1">
+            <label className="text-xs font-bold text-gray-500 block mb-1">
               อาการเสีย / ปัญหา
             </label>
             <textarea
-              className="w-full border p-1.5 rounded text-sm"
-              rows={2}
+              className={inputClass}
+              rows={3}
               placeholder="ระบุอาการ..."
               value={issueItem}
               onChange={(e) => setIssueItem(e.target.value)}
             />
           </div>
           <div className="bg-blue-50 p-2 rounded border border-blue-100">
-            <div className="flex gap-4 mb-1">
+            <div className="flex gap-4 mb-2">
               <label className="flex gap-1 text-xs font-bold items-center">
                 <input
                   type="radio"
@@ -1691,7 +1726,7 @@ function CreateTicketModal({
               </label>
             </div>
             <select
-              className="w-full border p-1.5 rounded text-sm bg-white"
+              className={inputClass}
               value={area}
               onChange={(e) => setArea(e.target.value)}
             >
@@ -1704,7 +1739,7 @@ function CreateTicketModal({
             </select>
             {area === "อื่นๆ" && (
               <input
-                className="w-full border p-1.5 rounded text-sm mt-1"
+                className={`${inputClass} mt-2`}
                 placeholder="ระบุสถานที่..."
                 value={otherArea}
                 onChange={(e) => setOtherArea(e.target.value)}
@@ -1715,14 +1750,14 @@ function CreateTicketModal({
         <div className="flex gap-2 mt-4 pt-2 border-t">
           <button
             onClick={onClose}
-            className="flex-1 py-2 text-xs text-gray-500 hover:bg-gray-100 rounded"
+            className="flex-1 py-3 text-sm font-bold text-gray-500 hover:bg-gray-100 rounded-lg"
           >
             ยกเลิก
           </button>
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="flex-1 py-2 bg-orange-600 text-white font-bold text-sm rounded hover:bg-orange-700 shadow-md"
+            className="flex-1 py-3 bg-orange-600 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md"
           >
             {creating ? "กำลังสร้าง..." : "แจ้งซ่อม"}
           </button>
@@ -2282,14 +2317,14 @@ function MaintenanceDashboard({
     },
     {
       id: 3,
-      label: "ผู้แจ้งตรวจ",
+      label: "ตรวจรับงาน",
       icon: <UserCheck size={16} />,
       count: getCount("Wait_Verify"),
       color: "text-purple-600",
     },
     {
       id: 4,
-      label: "หน.ช่าง",
+      label: "Maint.Leader",
       icon: <UserCog size={16} />,
       count: getCount("Wait_Leader"),
       color: "text-indigo-600",
@@ -2303,7 +2338,7 @@ function MaintenanceDashboard({
     },
     {
       id: 6,
-      label: "ประวัติ",
+      label: "History",
       icon: <History size={16} />,
       count: 0,
       color: "text-gray-600",
