@@ -54,25 +54,37 @@ import {
 } from "lucide-react";
 
 // ==========================================
-// TELEGRAM CONFIG (แจ้งเตือนกลุ่มช่าง)
+// TELEGRAM CONFIG (แก้ไขให้แสดง Error ชัดเจนขึ้น)
 // ==========================================
-const TELEGRAM_TOKEN = "7821387231:AAHBHIpcmA8fckoR3kRxJmnU90TJd8JnzYM";
-const TELEGRAM_CHAT_ID = "-1003635103735"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
+const TELEGRAM_TOKEN = "8479695961:AAFtKB3MuE1PHk9tYVckhgYPrbb2dYpI1eI";
+const TELEGRAM_CHAT_ID = "-1003635103735";
 
 const sendTelegram = async (message: string) => {
-  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
+  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.error("Telegram Token or Chat ID missing");
+    return;
+  }
   try {
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: "HTML", // เพื่อให้ทำตัวหนาได้
-      }),
-    });
+    const response = await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: "HTML",
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Telegram Error:", errorData);
+      // alert("แจ้งเตือน Telegram ไม่สำเร็จ: " + errorData.description); // เปิดบรรทัดนี้ถ้าอยากให้มันฟ้อง user
+    }
   } catch (err) {
-    console.error("Telegram Error:", err);
+    console.error("Telegram Network Error:", err);
   }
 };
 
@@ -1544,7 +1556,7 @@ function TicketDetailModal({
 }
 
 // ==========================================
-// 6. CREATE TICKET MODAL (Auto-ID)
+// 6. CREATE TICKET MODAL (Auto-ID & Fix Notification)
 // ==========================================
 function CreateTicketModal({
   user,
@@ -1604,7 +1616,10 @@ function CreateTicketModal({
       alert("กรอกข้อมูลไม่ครบ");
       return;
     }
+
+    // 1. เริ่มสถานะกำลังส่ง (ปุ่มจะกดไม่ได้)
     setCreating(true);
+
     try {
       const selectedDeptObj = deptOptions.find((d) => d.name === department);
       const gg = selectedDeptObj?.code || "XX";
@@ -1613,14 +1628,17 @@ function CreateTicketModal({
       const mm = String(now.getMonth() + 1).padStart(2, "0");
       const yymm = `${yy}${mm}`;
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
       const q = query(
         collection(db, "maintenance_tickets"),
         where("department", "==", department),
         where("created_at", ">=", startOfMonth)
       );
+
       const querySnapshot = await getDocs(q);
       let maxRunNo = 0;
       const prefix = `${gg}-${yymm}`;
+
       querySnapshot.forEach((doc) => {
         const id = doc.id;
         if (id.startsWith(prefix)) {
@@ -1629,10 +1647,12 @@ function CreateTicketModal({
           if (!isNaN(num) && num > maxRunNo) maxRunNo = num;
         }
       });
+
       const nextRunNo = maxRunNo + 1;
       const xxx = String(nextRunNo).padStart(3, "0");
       const newTicketId = `${gg}-${yymm}${xxx}`;
 
+      // 2. บันทึกลง Firebase
       await setDoc(doc(db, "maintenance_tickets", newTicketId), {
         id: newTicketId,
         machine_id: "MANUAL",
@@ -1651,24 +1671,28 @@ function CreateTicketModal({
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
+
+      // 3. เตรียมข้อความแจ้งเตือน
       const msg = `🏢<b>แผนก:</b> ${department}\n⚙️<b>เครื่อง:</b> ${machineName}\n⚠️<b>อาการ:</b> ${issueItem}\n👤<b>ผู้แจ้ง:</b> ${user.fullname}`;
 
-      sendTelegram(msg);
+      // ✅✅ จุดสำคัญ: ใส่ await เพื่อรอให้ส่งเสร็จก่อนปิดหน้าต่าง
+      await sendTelegram(msg);
+
+      // 4. ส่งเสร็จแล้วค่อยปิดหน้าต่าง
       onClose();
     } catch (e) {
       alert("เกิดข้อผิดพลาด: " + e);
-    } finally {
-      setCreating(false);
+      console.error(e);
+      setCreating(false); // ถ้า Error ให้ปลดล็อคปุ่ม
     }
+    // หมายเหตุ: ไม่ต้องใส่ finally { setCreating(false) } เพราะถ้าสำเร็จ onClose จะทำลาย Component ทิ้งอยู่แล้ว
   };
 
-  // ✅✅ KEY FIX: สร้าง Class กลางที่มี text-base (16px) เพื่อป้องกันการซูม
   const inputClass =
     "w-full border border-gray-300 p-2 rounded-lg text-base bg-white focus:ring-2 focus:ring-orange-200 outline-none";
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      {/* เพิ่ม overflow-y-auto เพื่อให้หน้าจอเลื่อนได้ถ้าคีย์บอร์ดบัง */}
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-5 overflow-y-auto max-h-[90vh]">
         <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
           <Hammer className="text-orange-600" /> แจ้งซ่อม
@@ -1791,9 +1815,9 @@ function CreateTicketModal({
           <button
             onClick={handleCreate}
             disabled={creating}
-            className="flex-1 py-3 bg-orange-600 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md"
+            className="flex-1 py-3 bg-orange-600 disabled:bg-gray-400 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md transition-colors"
           >
-            {creating ? "กำลังสร้าง..." : "แจ้งซ่อม"}
+            {creating ? "กำลังส่งข้อมูล..." : "แจ้งซ่อม"}
           </button>
         </div>
       </div>
