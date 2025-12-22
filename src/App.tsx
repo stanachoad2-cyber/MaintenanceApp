@@ -57,7 +57,7 @@ import {
 // TELEGRAM CONFIG (แจ้งเตือนกลุ่มช่าง)
 // ==========================================
 const TELEGRAM_TOKEN = "7821387231:AAHBHIpcmA8fckoR3kRxJmnU90TJd8JnzYM";
-const TELEGRAM_CHAT_ID = "-5033478244"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
+const TELEGRAM_CHAT_ID = "-1003635103735"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
 
 const sendTelegram = async (message: string) => {
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
