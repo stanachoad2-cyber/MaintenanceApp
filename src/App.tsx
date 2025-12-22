@@ -312,46 +312,34 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     // ==========================================
 
     // 1. หัวข้อ SAL01 (ซ้าย) และ SAL02 (ขวา)
-    check(117, 73, ticket.factory === "SAL01" || true);
-    check(160.5, 73, ticket.factory === "SAL02" || true);
+    check(117, 73, ticket.factory === "SAL01");
+    check(160.5, 73, ticket.factory === "SAL02");
 
     const area = ticket.area || "";
 
     // 2. รายการฝั่งซ้าย (SAL01)
-    check(
-      117,
-      78,
-      area.includes("สำนักงาน") || area.includes("HeadOffice") || true
-    );
-    check(
-      117,
-      82.5,
-      area.includes("อัดรีด") || area.includes("Extrusion") || true
-    );
-    check(117, 87.5, area.includes("ตัด") || area.includes("Cutting") || true);
-    check(117, 92.5, area.includes("บด") || area.includes("Grinding") || true);
+    check(117, 78, area.includes("สำนักงาน") || area.includes("HeadOffice"));
+    check(117, 82.5, area.includes("อัดรีด") || area.includes("Extrusion"));
+    check(117, 87.5, area.includes("ตัด") || area.includes("Cutting"));
+    check(117, 92.5, area.includes("บด") || area.includes("Grinding"));
 
     // 3. รายการฝั่งขวา (SAL02)
-    check(160.5, 78, area.includes("Office-WH") || true);
+    check(160.5, 78, area.includes("Office-WH"));
     check(
       160.5,
       82.5,
-      area.includes("คลังสินค้า") || area.includes("Warehouse") || true
+      area.includes("คลังสินค้า") || area.includes("Warehouse")
     );
-    check(
-      160.5,
-      87.5,
-      area.includes("Dock") || area.includes("loading") || true
-    );
+    check(160.5, 87.5, area.includes("Dock") || area.includes("loading"));
 
     // 4. ช่อง Other (แยกซ้าย-ขวา อิสระจากกัน)
     const isOtherArea = area.includes("อื่นๆ") || area.includes("Other");
 
     // Other ฝั่งซ้าย (SAL01) -> อยู่บรรทัดล่างสุด Y=97.5
-    check(117, 97.5, (ticket.factory === "SAL01" && isOtherArea) || true);
+    check(117, 97.5, ticket.factory === "SAL01" && isOtherArea);
 
     // Other ฝั่งขวา (SAL02) -> อยู่บรรทัดเดียวกับ Grinding Y=92.5
-    check(160.5, 92.5, (ticket.factory === "SAL02" && isOtherArea) || true);
+    check(160.5, 92.5, ticket.factory === "SAL02" && isOtherArea);
 
     if (isOtherArea) {
       const otherAreaText = area.split("(")[1]?.replace(")", "") || "";
