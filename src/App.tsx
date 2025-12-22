@@ -57,7 +57,7 @@ import {
 // TELEGRAM CONFIG (แจ้งเตือนกลุ่มช่าง)
 // ==========================================
 const TELEGRAM_TOKEN = "7821387231:AAHBHIpcmA8fckoR3kRxJmnU90TJd8JnzYM";
-const TELEGRAM_CHAT_ID = "-1003635103735"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
+const TELEGRAM_CHAT_ID = "-5033478244"; // ใส่ ID กลุ่มช่าง (อย่าลืมเครื่องหมายลบ)
 
 const sendTelegram = async (message: string) => {
   if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
@@ -234,9 +234,27 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     const showGrid = false;
     if (showGrid) {
       doc.setFontSize(6);
-      doc.setTextColor(255, 0, 0);
-      for (let x = 0; x <= 210; x += 5) doc.line(x, 0, x, 297);
-      for (let y = 0; y <= 297; y += 5) doc.line(0, y, 210, y);
+      doc.setTextColor(255, 0, 0); // สีตัวอักษรแดง
+      doc.setDrawColor(255, 0, 0); // สีเส้นแดง
+
+      // วาดเส้นแนวตั้ง (แกน X) พร้อมตัวเลข
+      for (let x = 0; x <= 210; x += 5) {
+        doc.line(x, 0, x, 297);
+        // ใส่ตัวเลขที่ขอบด้านบน (ขยับลงมา 2mm เพื่อให้เห็นชัด)
+        if (x % 10 === 0) {
+          // (Option) ถ้ากลัวเลขทับกัน ให้โชว์เฉพาะเลขหาร 10 ลงตัวก็ได้
+          doc.text(String(x), x, 3);
+        } else {
+          doc.text(String(x), x, 3);
+        }
+      }
+
+      // วาดเส้นแนวนอน (แกน Y) พร้อมตัวเลข
+      for (let y = 0; y <= 297; y += 5) {
+        doc.line(0, y, 210, y);
+        // ใส่ตัวเลขที่ขอบด้านซ้าย (ขยับมาขวา 1mm)
+        doc.text(String(y), 1, y);
+      }
     }
 
     doc.setTextColor(0, 0, 255);
@@ -256,6 +274,7 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     };
 
     const check = (x: number, y: number, isChecked: boolean) => {
+      // ✅ แก้ตรงนี้: เปลี่ยน isChecked เป็น true เพื่อบังคับติ้กทุกช่อง
       if (isChecked) {
         doc.setFontSize(24);
         doc.text("/", x, y);
@@ -267,11 +286,11 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
 
     // --- Requestor ---
     const job = ticket.job_type || "";
-    check(31, 43, job.includes("เครื่องจักร"));
-    check(31, 47.5, job.includes("อุปกรณ์"));
-    check(31, 52.5, job.includes("สาธารณูปโภค"));
-    check(31, 57.5, job.includes("ปรับปรุง"));
-    check(31, 62.5, job.includes("อื่นๆ"));
+    check(30.5, 43.2, job.includes("เครื่องจักร"));
+    check(30.5, 48, job.includes("อุปกรณ์"));
+    check(30.5, 53, job.includes("สาธารณูปโภค"));
+    check(30.5, 58, job.includes("ปรับปรุง"));
+    check(30.5, 63, job.includes("อื่นๆ"));
     if (job.includes("อื่นๆ")) {
       const otherText = job.split("(")[1]?.replace(")", "") || "";
       text(otherText, 48, 62, 14);
@@ -288,24 +307,51 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
 
     text(ticket.machine_name, 122, 59, 14);
 
-    check(118, 72, ticket.factory === "SAL01");
-    check(161, 72, ticket.factory === "SAL02");
+    // ==========================================
+    // ส่วน Location (สถานที่)
+    // ==========================================
+
+    // 1. หัวข้อ SAL01 (ซ้าย) และ SAL02 (ขวา)
+    check(117, 73, ticket.factory === "SAL01" || true);
+    check(160.5, 73, ticket.factory === "SAL02" || true);
 
     const area = ticket.area || "";
-    check(118, 77.5, area.includes("สำนักงาน") || area.includes("HeadOffice"));
-    check(161, 77.5, area.includes("Office-WH"));
-    check(118, 82.5, area.includes("อัดรีด") || area.includes("Extrusion"));
-    check(161, 82.5, area.includes("คลังสินค้า") || area.includes("Warehouse"));
-    check(118, 87.5, area.includes("ตัด") || area.includes("Cutting"));
-    check(161, 87.5, area.includes("Dock") || area.includes("loading"));
-    check(118, 92, area.includes("บด") || area.includes("Grinding"));
 
+    // 2. รายการฝั่งซ้าย (SAL01)
+    check(
+      117,
+      78,
+      area.includes("สำนักงาน") || area.includes("HeadOffice") || true
+    );
+    check(
+      117,
+      82.5,
+      area.includes("อัดรีด") || area.includes("Extrusion") || true
+    );
+    check(117, 87.5, area.includes("ตัด") || area.includes("Cutting") || true);
+    check(117, 92.5, area.includes("บด") || area.includes("Grinding") || true);
+
+    // 3. รายการฝั่งขวา (SAL02)
+    check(160.5, 78, area.includes("Office-WH") || true);
+    check(
+      160.5,
+      82.5,
+      area.includes("คลังสินค้า") || area.includes("Warehouse") || true
+    );
+    check(
+      160.5,
+      87.5,
+      area.includes("Dock") || area.includes("loading") || true
+    );
+
+    // 4. ช่อง Other (แยกซ้าย-ขวา อิสระจากกัน)
     const isOtherArea = area.includes("อื่นๆ") || area.includes("Other");
-    if (ticket.factory === "SAL01") {
-      check(118, 97, isOtherArea);
-    } else {
-      check(161, 92.5, isOtherArea);
-    }
+
+    // Other ฝั่งซ้าย (SAL01) -> อยู่บรรทัดล่างสุด Y=97.5
+    check(117, 97.5, (ticket.factory === "SAL01" && isOtherArea) || true);
+
+    // Other ฝั่งขวา (SAL02) -> อยู่บรรทัดเดียวกับ Grinding Y=92.5
+    check(160.5, 92.5, (ticket.factory === "SAL02" && isOtherArea) || true);
 
     if (isOtherArea) {
       const otherAreaText = area.split("(")[1]?.replace(")", "") || "";
@@ -324,15 +370,15 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     text(causeDetail, 15, 115, 14);
 
     const cc = ticket.cause_category || "";
-    check(118, 114, cc.includes("Dirty") || cc.includes("สกปรก"));
-    check(118, 119, cc.includes("Loosen") || cc.includes("หลวม"));
-    check(118, 124.5, cc.includes("Broken") || cc.includes("แตกหัก"));
-    check(118, 129, cc.includes("Defect") || cc.includes("บกพร่อง"));
-    check(118, 134, cc.includes("Expired") || cc.includes("หมดอายุ"));
-    check(118, 139, cc.includes("Person") || cc.includes("ผิดพลาด"));
+    check(117, 114.5, cc.includes("Dirty") || cc.includes("สกปรก"));
+    check(117, 119.5, cc.includes("Loosen") || cc.includes("หลวม"));
+    check(117, 124.5, cc.includes("Broken") || cc.includes("แตกหัก"));
+    check(117, 129, cc.includes("Defect") || cc.includes("บกพร่อง"));
+    check(117, 134, cc.includes("Expired") || cc.includes("หมดอายุ"));
+    check(117, 139, cc.includes("Person") || cc.includes("ผิดพลาด"));
 
     const isOtherCause = cc.includes("อื่นๆ") || cc.includes("Other");
-    check(118, 143.5, isOtherCause);
+    check(117, 144, isOtherCause);
     if (isOtherCause) {
       // ✅ แก้จุดนี้: ใส่ || "" กัน Error
       text(ticket.cause_category_other || "", 140, 143, 14);
@@ -366,10 +412,10 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     const isSupplier = res.includes("ภายนอก") || res.includes("Supplier");
     const isOtherResult = res.includes("อื่นๆ") || res.includes("Other");
 
-    check(118, 201.5, isCompleted);
-    check(118, 206.5, isWaitPart);
-    check(118, 216, isSupplier);
-    check(118, 225.5, isOtherResult);
+    check(117, 201.5, isCompleted);
+    check(117, 206.5, isWaitPart);
+    check(117, 216.3, isSupplier);
+    check(117, 226, isOtherResult);
 
     if (isWaitPart) {
       text(remarkToShow, 140, 206.5, 14);
@@ -401,8 +447,8 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
       text(`${mins}`, 175, 242, 14, "center");
     }
 
-    check(52, 262.5, ticket.mc_status === "Stop MC");
-    check(52, 267.5, ticket.mc_status === "Not Stop");
+    check(51, 263.5, ticket.mc_status === "Stop MC");
+    check(51, 268.2, ticket.mc_status === "Not Stop");
 
     // --- Signatures ---
     if (ticket.leader_checked_by) {
