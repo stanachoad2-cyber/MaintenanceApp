@@ -746,7 +746,7 @@ function TicketCard({
 }
 
 // ==========================================
-// 6. TICKET DETAIL MODAL (Final: Orange Theme for Disabled Inputs)
+// 6. TICKET DETAIL MODAL (Minimal Edit Button)
 // ==========================================
 function TicketDetailModal({
   ticket,
@@ -778,10 +778,7 @@ function TicketDetailModal({
   const [delayReason, setDelayReason] = useState(ticket.delay_reason || "");
   const [spareParts, setSpareParts] = useState<{ name: string; qty: string }[]>(
     ticket.spare_parts
-      ? ticket.spare_parts.map((p) => ({
-          name: p.name,
-          qty: p.qty.toString(),
-        }))
+      ? ticket.spare_parts.map((p) => ({ name: p.name, qty: p.qty.toString() }))
       : []
   );
   const [mcStatus, setMcStatus] = useState<"Stop MC" | "Not Stop">(
@@ -801,6 +798,9 @@ function TicketDetailModal({
   const [isEditingId, setIsEditingId] = useState(false);
   const [newTicketId, setNewTicketId] = useState(ticket.id);
 
+  // State สำหรับโหมดแก้ไข
+  const [isEditingMode, setIsEditingMode] = useState(false);
+
   const [causeOptions, setCauseOptions] = useState<string[]>([]);
   const [resultOptions, setResultOptions] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -819,6 +819,7 @@ function TicketDetailModal({
     fetchOpts();
   }, []);
 
+  // Helper Functions
   const calculateDuration = () => {
     if (!startTime || !endTime) return "-";
     const start = new Date(startTime).getTime();
@@ -873,10 +874,12 @@ function TicketDetailModal({
 
   const isActuallyOverdue = isOverdue48h(ticket.created_at);
   const isOverdue = isActuallyOverdue && ticket.status === "In_Progress";
+
+  // Logic การแก้ไข
   const isEditable =
     (isTechnician && ticket.status === "In_Progress") ||
-    (isSuperAdmin &&
-      (ticket.status === "Wait_Approve" || ticket.status === "Closed"));
+    (isSuperAdmin && isEditingMode);
+
   const isWorkCompleted =
     maintenanceResult.includes("สมบูรณ์") ||
     maintenanceResult.includes("Completed") ||
@@ -907,7 +910,6 @@ function TicketDetailModal({
         setIsUpdating(false);
         return;
       }
-
       const { id, ...currentData } = ticket;
       const updatedData = {
         ...currentData,
@@ -919,7 +921,6 @@ function TicketDetailModal({
         spare_parts: spareParts,
         updated_at: serverTimestamp(),
       };
-
       await setDoc(newDocRef, updatedData);
       await deleteDoc(doc(db, "maintenance_tickets", ticket.id));
       alert("เปลี่ยนเลขที่เรียบร้อย");
@@ -969,8 +970,7 @@ function TicketDetailModal({
         updateData.technician_name = user.fullname || user.username;
         updateData.start_time = serverTimestamp();
         setStartTime(new Date().toISOString().slice(0, 16));
-      }
-      if (action === "ToVerify") {
+      } else if (action === "ToVerify") {
         if (
           !causeDetail ||
           !solution ||
@@ -989,16 +989,13 @@ function TicketDetailModal({
           return;
         }
         updateData.status = "Wait_Verify";
-      }
-      if (action === "UserConfirm") {
+      } else if (action === "UserConfirm") {
         updateData.status = "Wait_Approve";
         updateData.verified_at = serverTimestamp();
         updateData.verified_by = user.fullname || user.username;
-      }
-      if (action === "ToApprove") {
+      } else if (action === "ToApprove") {
         updateData.status = "Wait_Approve";
-      }
-      if (action === "Close") {
+      } else if (action === "Close") {
         updateData.status = "Closed";
         updateData.approved_by = user.fullname || user.username;
         updateData.approved_at = serverTimestamp();
@@ -1006,8 +1003,12 @@ function TicketDetailModal({
       }
 
       await updateDoc(doc(db, "maintenance_tickets", ticket.id), updateData);
-      if (action === "AdminSave") alert("บันทึกเรียบร้อย");
-      else onClose();
+      if (action === "AdminSave") {
+        alert("บันทึกเรียบร้อย");
+        setIsEditingMode(false); // ออกจากโหมดแก้ไข
+      } else {
+        onClose();
+      }
     } catch (err) {
       alert("Error: " + err);
     } finally {
@@ -1015,14 +1016,9 @@ function TicketDetailModal({
     }
   };
 
-  // --- STYLES (แก้ไขตรงนี้ให้เป็นสีส้ม) ---
   const labelClass = "text-[10px] font-bold text-black mb-1 block";
-
-  // แก้ disabled:bg-gray-100 -> disabled:bg-orange-50 และ disabled:border-orange-200
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-base text-gray-900 h-10 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors bg-white disabled:bg-orange-50 disabled:text-gray-700 disabled:border-orange-200";
-
-  // แก้ bg-gray-100 -> bg-orange-50 และ border-gray-200 -> border-orange-200
   const displayBoxClass =
     "w-full border border-orange-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 h-10 flex items-center bg-orange-50";
 
@@ -1075,7 +1071,6 @@ function TicketDetailModal({
                       <button
                         onClick={() => setIsEditingId(true)}
                         className="text-gray-400 hover:text-blue-500 transition-colors"
-                        title="แก้ไขเลขที่"
                       >
                         <Pencil size={14} />
                       </button>
@@ -1085,12 +1080,30 @@ function TicketDetailModal({
               </div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* ✅✅ ปุ่มแก้ไข (Pencil) อยู่มุมขวาบน (เฉพาะ Admin ในหน้า Approve/Closed) */}
+            {isSuperAdmin &&
+              (ticket.status === "Wait_Approve" ||
+                ticket.status === "Closed") && (
+                <button
+                  onClick={() => setIsEditingMode(!isEditingMode)}
+                  className={`p-2 rounded-full transition-colors ${
+                    isEditingMode
+                      ? "bg-orange-100 text-orange-600"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  }`}
+                  title="แก้ไขข้อมูล"
+                >
+                  <Pencil size={20} />
+                </button>
+              )}
+            <button
+              onClick={onClose}
+              className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 custom-scrollbar bg-white pb-6">
@@ -1101,8 +1114,7 @@ function TicketDetailModal({
                   บันทึกการซ่อม (Maintenance Record)
                 </span>
                 <div className="flex items-center gap-1 text-[10px] text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200">
-                  <Clock size={12} />
-                  {formatRequestTime(ticket.created_at)}
+                  <Clock size={12} /> {formatRequestTime(ticket.created_at)}
                   <span className="font-mono text-gray-400 ml-1">
                     (#{ticket.id})
                   </span>
@@ -1194,7 +1206,6 @@ function TicketDetailModal({
                       <button
                         onClick={handleAddPart}
                         className="absolute top-1 right-1 p-1 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                        title="เพิ่มอะไหล่"
                       >
                         <Plus size={16} />
                       </button>
@@ -1508,9 +1519,6 @@ function TicketDetailModal({
             )}
             {ticket.status === "Wait_Verify" && (
               <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 text-center">
-                <p className="text-purple-900 font-semibold mb-3 text-sm">
-                  สถานะ: รอผู้แจ้งตรวจรับงาน
-                </p>
                 {isRequester && (
                   <button
                     onClick={() => updateStatus("UserConfirm")}
@@ -1523,9 +1531,7 @@ function TicketDetailModal({
             )}
             {ticket.status === "Wait_Approve" && (
               <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 text-center">
-                <p className="text-orange-900 font-semibold mb-3 text-sm">
-                  สถานะ: รอ Approval
-                </p>
+                <p className="text-orange-900 font-semibold mb-3 text-sm"></p>
                 {isSupervisor && (
                   <div className="flex gap-2">
                     <button
@@ -1534,14 +1540,6 @@ function TicketDetailModal({
                     >
                       <Crown size={16} /> Approve
                     </button>
-                    {isSuperAdmin && (
-                      <button
-                        onClick={() => updateStatus("AdminSave")}
-                        className="flex-1 h-10 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-sm"
-                      >
-                        <Settings size={16} /> บันทึกการแก้ไข
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -1551,16 +1549,27 @@ function TicketDetailModal({
                 <div className="w-full h-10 bg-gray-100 text-gray-500 text-sm font-bold flex items-center justify-center rounded-lg border border-gray-200">
                   <Lock size={14} className="mr-2" /> Approved
                 </div>
-                {isSuperAdmin && (
-                  <button
-                    onClick={() => updateStatus("AdminSave")}
-                    className="w-full h-10 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Settings size={16} /> บันทึกแก้ไข (History Mode)
-                  </button>
-                )}
               </div>
             )}
+
+            {/* ✅✅ ปุ่มบันทึก/ยกเลิก (แสดงเมื่อกดแก้ไขที่มุมขวาบน) */}
+            {isSuperAdmin && isEditingMode && (
+              <div className="flex gap-2 animate-in slide-in-from-bottom-2 fade-in duration-200">
+                <button
+                  onClick={() => setIsEditingMode(false)}
+                  className="flex-1 h-10 bg-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-300 transition-all"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={() => updateStatus("AdminSave")}
+                  className="flex-1 h-10 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Save size={16} /> บันทึกการเปลี่ยนแปลง
+                </button>
+              </div>
+            )}
+
             {isSuperAdmin && (
               <button
                 onClick={() => onDelete(ticket.id, ticket.status)}
@@ -1577,7 +1586,7 @@ function TicketDetailModal({
 }
 
 // ==========================================
-// 6. CREATE TICKET MODAL (Smart Counter: Auto-Skip if ID exists)
+// 7. CREATE TICKET MODAL (Auto-Check Last ID)
 // ==========================================
 function CreateTicketModal({
   user,
@@ -1643,62 +1652,44 @@ function CreateTicketModal({
       const selectedDeptObj = deptOptions.find((d) => d.name === department);
       const prefixCode = selectedDeptObj?.code || "MT";
 
-      const resultId = await runTransaction(db, async (transaction) => {
-        const counterRef = doc(db, "maintenance_settings", "ticket_counter");
-        const counterSnap = await transaction.get(counterRef);
+      // 1. เตรียมรูปแบบ ID: CODE-YYMM (เช่น PE-2512)
+      const now = new Date();
+      const yy = now.getFullYear().toString().slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const idPrefix = `${prefixCode}-${yy}${mm}`;
 
-        const now = new Date();
-        const yy = now.getFullYear().toString().slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, "0");
-        const currentYM = `${yy}${mm}`;
-
-        let nextCount = 1;
-        if (counterSnap.exists()) {
-          const data = counterSnap.data();
-          if (data.year_month === currentYM) {
-            nextCount = data.count + 1;
-          } else {
-            nextCount = 1;
-          }
-        }
-
-        // --- เพิ่ม LOGIC ป้องกันการทับ ID (Loop Check) ---
-        let newTicketId = "";
-        let isIdUnique = false;
-
-        // วนลูปเช็คว่า ID นี้มีคนใช้ไปหรือยัง (เช่น กรณีแก้เลข manual)
-        while (!isIdUnique) {
-          const running = String(nextCount).padStart(3, "0");
-          newTicketId = `${prefixCode}-${currentYM}-${running}`;
-
-          // ลองดึง doc นี้มาดูว่ามีอยู่แล้วไหม
-          const existingDoc = await transaction.get(
-            doc(db, "maintenance_tickets", newTicketId)
-          );
-
-          if (existingDoc.exists()) {
-            // ถ้ามีแล้ว (ซ้ำ) ให้ขยับเลขไปอีก 1 แล้ววนลูปใหม่
-            nextCount++;
-          } else {
-            // ถ้าว่าง (ไม่ซ้ำ) ก็ใช้เลขนี้ได้เลย
-            isIdUnique = true;
-          }
-        }
-        // ----------------------------------------------
-
-        // อัปเดตตัวนับล่าสุดกลับไปที่ DB (ข้ามเลขที่ซ้ำไปเลย)
-        transaction.set(
-          counterRef,
-          {
-            count: nextCount,
-            year_month: currentYM,
-          },
-          { merge: true }
+      // 2. ใช้ Transaction เพื่อความชัวร์ (กันคนกดพร้อมกัน)
+      const newTicketId = await runTransaction(db, async (transaction) => {
+        // Query หาใบงานทั้งหมดที่ขึ้นต้นด้วย prefix นี้
+        // หมายเหตุ: การ Query ใน transaction ต้องระวัง แต่ case นี้เราอ่าน collection เพื่อหา max id
+        const q = query(
+          collection(db, "maintenance_tickets"),
+          where("id", ">=", idPrefix),
+          where("id", "<", idPrefix + "\uf8ff")
         );
 
-        // สร้างใบงาน
-        transaction.set(doc(db, "maintenance_tickets", newTicketId), {
-          id: newTicketId,
+        const querySnapshot = await getDocs(q); // อ่านข้อมูลจริงที่มีอยู่
+
+        let maxRunNo = 0;
+        querySnapshot.forEach((doc) => {
+          const id = doc.id; // เช่น PE-2512005
+          // ตัดเอาเฉพาะ 3 ตัวท้ายมาเป็นตัวเลข
+          const suffix = id.slice(-3);
+          const num = parseInt(suffix, 10);
+
+          // เช็คว่าเป็นตัวเลขจริงๆ และมากกว่าค่าสูงสุดที่มี
+          if (!isNaN(num) && num > maxRunNo) {
+            maxRunNo = num;
+          }
+        });
+
+        // 3. รันเลขถัดไป (เอาเลขสูงสุดที่มี + 1)
+        const nextRunNo = maxRunNo + 1;
+        const generatedId = `${idPrefix}${String(nextRunNo).padStart(3, "0")}`;
+
+        // 4. บันทึกใบงานใหม่
+        transaction.set(doc(db, "maintenance_tickets", generatedId), {
+          id: generatedId,
           machine_id: "MANUAL",
           machine_name: machineName,
           job_type: jobType === "อื่นๆ" ? `อื่นๆ (${otherJobType})` : jobType,
@@ -1716,15 +1707,12 @@ function CreateTicketModal({
           updated_at: serverTimestamp(),
         });
 
-        return newTicketId;
+        return generatedId;
       });
 
-      const msg = `🆕<b>แจ้งซ่อมใหม่:</b> ${resultId}\n🏢<b>แผนก:</b> ${department}\n⚙️<b>เครื่อง:</b> ${machineName}\n⚠️<b>อาการ:</b> ${issueItem}\n👤<b>ผู้แจ้ง:</b> ${user.fullname}`;
-      try {
-        await sendTelegram(msg);
-      } catch (e) {
-        console.error(e);
-      }
+      // ส่งแจ้งเตือน
+      const msg = `🆕<b>แจ้งซ่อมใหม่:</b> ${newTicketId}\n🏢<b>แผนก:</b> ${department}\n⚙️<b>เครื่อง:</b> ${machineName}\n⚠️<b>อาการ:</b> ${issueItem}\n👤<b>ผู้แจ้ง:</b> ${user.fullname}`;
+      await sendTelegram(msg);
 
       onClose();
     } catch (e) {
@@ -1736,6 +1724,7 @@ function CreateTicketModal({
 
   const inputClass =
     "w-full border border-gray-300 p-2 rounded-lg text-base bg-white focus:ring-2 focus:ring-orange-200 outline-none";
+
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-5 overflow-y-auto max-h-[90vh]">
@@ -1862,7 +1851,7 @@ function CreateTicketModal({
             disabled={creating}
             className="flex-1 py-3 bg-orange-600 disabled:bg-gray-400 text-white font-bold text-sm rounded-lg hover:bg-orange-700 shadow-md transition-colors"
           >
-            {creating ? "กำลังส่งข้อมูล..." : "แจ้งซ่อม"}
+            {creating ? "กำลังส่ง..." : "แจ้งซ่อม"}
           </button>
         </div>
       </div>
