@@ -2412,33 +2412,24 @@ function MaintenanceDashboard({
     },
   ];
 
-  // ฟังก์ชันลบใบงาน (มี Logic คืนเลขรัน ถ้ายังไม่ Approve และเป็นใบสุดท้าย)
+  // ฟังก์ชันลบใบงาน (ตัดระบบ Counter ออก เพราะใช้ระบบกวาดสายตา Max ID อยู่แล้ว)
   const handleDeleteTicket = (id: string, status: string) => {
     setGuardMessage("คุณต้องการลบรายการนี้ใช่หรือไม่?");
     setPendingAction(() => async () => {
       try {
         await runTransaction(db, async (transaction) => {
-          const counterRef = doc(db, "maintenance_settings", "ticket_counter");
+          // อ้างอิงเอกสารใบงานที่ต้องการลบ
           const ticketRef = doc(db, "maintenance_tickets", id);
 
-          const counterSnap = await transaction.get(counterRef);
-          // ดึงเลขจาก ID (เช่น MT-2512-005 -> 5)
-          const ticketNum = parseInt(id.split("-").pop() || "0");
-          const currentCount = counterSnap.exists()
-            ? counterSnap.data().count
-            : 0;
-
-          // ถ้ายังไม่ Approved และเป็นใบงานล่าสุด -> ถอยเลข Counter
-          const isApproved = ["Wait_Approve", "Closed"].includes(status);
-          if (!isApproved && ticketNum === currentCount) {
-            transaction.update(counterRef, { count: currentCount - 1 });
-          }
-
+          // สั่งลบข้อมูลผ่าน Transaction
           transaction.delete(ticketRef);
         });
+
+        // ล้างค่าสถานะที่เลือกไว้และแจ้งเตือนผู้ใช้
         setSelectedTicket(null);
         alert("ลบรายการเรียบร้อย");
       } catch (e) {
+        console.error("Delete Error:", e);
         alert("เกิดข้อผิดพลาดในการลบ: " + e);
       }
     });
