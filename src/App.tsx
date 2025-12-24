@@ -554,12 +554,17 @@ function ConfirmPasswordModal({
 }
 
 // ==========================================
-// 4. LOGIN PAGE (แก้ไข: ลาย Pattern ใหญ่สะใจ)
+// 4. LOGIN PAGE (แก้ไข: แก้เรื่องคีย์บอร์ดบัง + Enter ไปช่องถัดไป)
 // ==========================================
+import { useRef } from "react"; // 1. อย่าลืม import useRef เพิ่ม
+
 function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 2. สร้าง Reference ไว้ชี้ไปที่ช่อง Password
+  const passRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -590,78 +595,182 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
     }
   };
 
-  // สร้าง Array ไอคอน (ลดจำนวนลงนิดหน่อยเพราะชิ้นใหญ่ขึ้น แต่ยังแน่นอยู่)
-  const patternItems = Array.from({ length: 40 }).map((_, i) => {
-    const Icon = i % 3 === 0 ? Wrench : i % 3 === 1 ? Hammer : Settings;
-    // ✅ ปรับขนาดให้ใหญ่ขึ้นมาก (จากเดิม 24/32 เป็น 64/96)
-    const size = i % 2 === 0 ? 64 : 96;
-    // สลับความจาง (เข้ม/จาง) ให้ดูมีมิติ
-    const opacity = i % 2 === 0 ? "opacity-10" : "opacity-5";
-
-    return (
-      <div
-        key={i}
-        className={`p-2 ${opacity} hover:opacity-20 transition-opacity duration-500`}
-      >
-        <Icon size={size} className="text-orange-400" strokeWidth={1.5} />
-      </div>
-    );
-  });
+  // 3. ฟังก์ชันกด Enter ที่ช่อง User แล้วไป Pass
+  const handleUserKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault(); // กันไม่ให้ Submit form
+      passRef.current?.focus(); // สั่งให้เคอร์เซอร์ไปช่อง Password
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-orange-50 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(249,115,22,0.3)] w-full max-w-sm relative overflow-hidden border border-orange-100">
-        {/* --- ส่วน Background Pattern (Wall of GIANT Icons) --- */}
-        {/* ใช้ -inset-32 เพื่อขยายพื้นที่ให้กว้างกว่ากล่อง แล้วหมุนเอียง */}
-        <div className="absolute -inset-32 z-0 flex flex-wrap content-center justify-center gap-2 transform -rotate-12 pointer-events-none">
-          {patternItems}
+    // 4. แก้ Layout นอกสุด: จาก fixed inset-0 เป็น min-h-[100dvh] เพื่อให้ Scroll ได้ตอนคีย์บอร์ดขึ้น
+    <div className="min-h-[100dvh] bg-orange-50 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-3xl shadow-[0_20px_50px_-12px_rgba(249,115,22,0.25)] w-full max-w-sm relative overflow-hidden border border-orange-100">
+        {/* --- ส่วน Background Pattern (คงไว้เหมือนเดิม) --- */}
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-20">
+          <Settings
+            size={140}
+            className="absolute -top-16 -left-16 text-orange-300 -rotate-12 opacity-30"
+          />
+          <Wrench
+            size={100}
+            className="absolute top-20 -right-10 text-orange-300 rotate-[120deg] opacity-30"
+          />
+          <Hammer
+            size={120}
+            className="absolute -bottom-20 -left-10 text-orange-300 rotate-12 opacity-30"
+          />
+          <Settings
+            size={100}
+            className="absolute -bottom-10 -right-10 text-orange-300 animate-spin-slow opacity-20"
+          />
+
+          <Wrench
+            size={40}
+            className="absolute top-5 left-20 text-orange-400 rotate-45"
+          />
+          <Hammer
+            size={35}
+            className="absolute top-8 right-20 text-orange-400 -rotate-12"
+          />
+          <Settings
+            size={30}
+            className="absolute top-20 left-10 text-orange-400 rotate-12"
+          />
+          <Settings
+            size={25}
+            className="absolute top-4 right-10 text-orange-400 opacity-50"
+          />
+
+          <Wrench
+            size={28}
+            className="absolute top-[40%] left-5 text-orange-400 rotate-90"
+          />
+          <Settings
+            size={40}
+            className="absolute top-[35%] right-5 text-orange-400 animate-spin-slow"
+          />
+          <Hammer
+            size={50}
+            className="absolute top-[50%] left-[-10px] text-orange-400 -rotate-45"
+          />
+          <Wrench
+            size={30}
+            className="absolute top-[55%] right-[-5px] text-orange-400 rotate-[135deg]"
+          />
+
+          <Settings
+            size={35}
+            className="absolute bottom-32 left-8 text-orange-400 rotate-45"
+          />
+          <Hammer
+            size={45}
+            className="absolute bottom-20 right-16 text-orange-400 rotate-[10deg]"
+          />
+          <Wrench
+            size={38}
+            className="absolute bottom-10 left-24 text-orange-400 -rotate-90"
+          />
+
+          <div className="opacity-60">
+            <Settings
+              size={15}
+              className="absolute top-12 left-1/2 text-orange-500"
+            />
+            <Wrench
+              size={12}
+              className="absolute top-24 right-1/3 text-orange-500 rotate-45"
+            />
+            <Hammer
+              size={14}
+              className="absolute top-32 left-1/4 text-orange-500 -rotate-12"
+            />
+            <Settings
+              size={18}
+              className="absolute top-1/2 right-1/3 text-orange-500"
+            />
+            <Wrench
+              size={16}
+              className="absolute bottom-40 left-1/2 text-orange-500 rotate-90"
+            />
+            <Hammer
+              size={12}
+              className="absolute bottom-24 right-5 text-orange-500"
+            />
+            <Settings
+              size={10}
+              className="absolute bottom-12 left-5 text-orange-500"
+            />
+            <Wrench
+              size={14}
+              className="absolute bottom-5 right-1/2 text-orange-500 -rotate-45"
+            />
+            <Settings
+              size={16}
+              className="absolute top-5 right-1/2 text-orange-500 opacity-50"
+            />
+            <Hammer
+              size={18}
+              className="absolute top-[60%] left-[20%] text-orange-500 rotate-12 opacity-50"
+            />
+            <Wrench
+              size={12}
+              className="absolute top-[20%] right-[10%] text-orange-500 rotate-12 opacity-50"
+            />
+            <Settings
+              size={20}
+              className="absolute bottom-[40%] right-[10%] text-orange-500 rotate-12 opacity-50"
+            />
+          </div>
         </div>
 
-        {/* --- เนื้อหา Login (z-10 ต้องอยู่เหนือ Pattern) --- */}
+        {/* --- เนื้อหา Login --- */}
         <div className="relative z-10">
-          {/* แถบสีด้านบน */}
           <div className="absolute -top-8 -left-8 w-[calc(100%+64px)] h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
 
           <div className="flex justify-center mb-6 mt-2">
-            {/* Backdrop blur ช่วยให้โลโก้เด่นออกมาจากลายพื้นหลังที่ใหญ่ๆ */}
-            <div className="bg-orange-50/80 p-4 rounded-full ring-4 ring-orange-100 shadow-xl backdrop-blur-md">
+            <div className="bg-orange-50 p-4 rounded-full ring-4 ring-orange-100 shadow-inner bg-opacity-90 backdrop-blur-sm">
               <Wrench size={48} className="text-orange-600 drop-shadow-sm" />
             </div>
           </div>
 
-          {/* กล่องข้อความแบบมีพื้นหลังจางๆ เพื่อให้อ่านง่ายทับลายใหญ่ */}
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl py-3 px-4 mb-6 text-center border border-orange-50 shadow-sm">
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-              Maintenance App
-            </h1>
-            <p className="text-xs text-gray-500 font-medium mt-1">
-              ระบบแจ้งซ่อมออนไลน์
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-center mb-1 text-gray-800 tracking-tight">
+            Maintenance App
+          </h1>
+          <p className="text-center text-xs text-gray-500 mb-8 font-medium">
+            ระบบแจ้งซ่อมออนไลน์
+          </p>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
+              {/* 5. ช่อง User: เพิ่ม enterKeyHint และ onKeyDown */}
               <input
                 className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-2xl bg-white/95 backdrop-blur-sm focus:bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-50/50 outline-none transition-all text-gray-700 placeholder-gray-400 shadow-sm"
                 placeholder="Username"
                 value={u}
                 onChange={(e) => setU(e.target.value)}
                 autoFocus
+                enterKeyHint="next" // บอกคีย์บอร์ดมือถือว่าปุ่มนี้คือกด "ถัดไป"
+                onKeyDown={handleUserKeyDown} // ดักจับการกดปุ่ม
               />
             </div>
             <div>
+              {/* 6. ช่อง Password: ใส่ ref เพื่อให้กระโดดมาได้ */}
               <input
+                ref={passRef}
                 type="password"
                 className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-2xl bg-white/95 backdrop-blur-sm focus:bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-50/50 outline-none transition-all text-gray-700 placeholder-gray-400 shadow-sm"
                 placeholder="Password"
                 value={p}
                 onChange={(e) => setP(e.target.value)}
+                enterKeyHint="go" // บอกคีย์บอร์ดมือถือว่าปุ่มนี้คือกด "ไป" (Login)
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200/80 hover:shadow-orange-300 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all disabled:from-gray-300 disabled:to-gray-400 relative z-20"
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200/80 hover:shadow-orange-300 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all disabled:from-gray-300 disabled:to-gray-400"
             >
               {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
             </button>
@@ -2550,7 +2659,7 @@ function MaintenanceDashboard({
                 </button>
                 <button
                   onClick={() => setShowUserModal(true)}
-                  className="p-2 bg-orange-50 text-orange-600 rounded-full border border-orange-100 hover:bg-orange-100 transition-colors"
+                  className="p-2 bg-gray-50 text-gray-600 rounded-full border border-gray-100 hover:bg-gray-100 transition-colors"
                 >
                   <UserPlus size={18} />
                 </button>
