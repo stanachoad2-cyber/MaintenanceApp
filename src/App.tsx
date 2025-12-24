@@ -16,7 +16,7 @@ import {
   serverTimestamp,
   getDocs,
   writeBatch,
-  runTransaction, // <--- เพิ่มตัวนี้สำหรับลบแล้วคืนเลข
+  runTransaction,
 } from "firebase/firestore";
 
 // Import jsPDF
@@ -161,21 +161,21 @@ const formatDate = (ts: any) => {
 const getStatusColor = (status: TicketStatus) => {
   switch (status) {
     case "Open":
-      return "bg-red-500";
+      return "bg-gradient-to-r from-rose-500 to-pink-600 shadow-md shadow-rose-200";
     case "In_Progress":
-      return "bg-blue-500";
+      return "bg-gradient-to-r from-blue-500 to-indigo-600 shadow-md shadow-blue-200";
     case "Waiting_Part":
-      return "bg-yellow-500";
+      return "bg-gradient-to-r from-amber-400 to-orange-500 shadow-md shadow-amber-200";
     case "Wait_Leader":
-      return "bg-indigo-500";
+      return "bg-gradient-to-r from-indigo-500 to-purple-600 shadow-md shadow-indigo-200";
     case "Wait_Verify":
-      return "bg-purple-500";
+      return "bg-gradient-to-r from-purple-500 to-fuchsia-600 shadow-md shadow-purple-200";
     case "Wait_Approve":
-      return "bg-orange-500";
+      return "bg-gradient-to-r from-orange-500 to-red-500 shadow-md shadow-orange-200";
     case "Closed":
-      return "bg-gray-500";
+      return "bg-gradient-to-r from-emerald-500 to-teal-600 shadow-md shadow-emerald-200";
     default:
-      return "bg-gray-500";
+      return "bg-gray-400";
   }
 };
 
@@ -200,7 +200,6 @@ const getStatusLabel = (status: TicketStatus) => {
   }
 };
 
-// Helper เช็ค 48 ชั่วโมง
 const isOverdue48h = (createdAt: any) => {
   if (!createdAt) return false;
   const createdDate = createdAt.toDate
@@ -212,7 +211,6 @@ const isOverdue48h = (createdAt: any) => {
   return diffHours > 48;
 };
 
-// Helper คำนวณระยะเวลาจาก CreatedAt ถึงปัจจุบัน
 const getElapsedTime = (createdAt: any) => {
   if (!createdAt) return "";
   const start = createdAt.toDate ? createdAt.toDate() : new Date(createdAt);
@@ -224,7 +222,7 @@ const getElapsedTime = (createdAt: any) => {
 };
 
 // ==========================================
-// 2. PDF GENERATOR FUNCTION (Fix Signatures Dates)
+// 2. PDF GENERATOR FUNCTION
 // ==========================================
 const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
   const formBase64 = formImageBase64;
@@ -232,7 +230,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-  // Load Font
   if (fontBase64 && fontBase64.length > 100) {
     doc.addFileToVFS("THSarabunNew.ttf", fontBase64);
     doc.addFont("THSarabunNew.ttf", "THSarabun", "normal");
@@ -241,7 +238,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     doc.setFont("helvetica");
   }
 
-  // Helper: จัดการวันที่ให้ปลอดภัย (รับทั้ง Timestamp และ Date)
   const fmtDate = (val: any) => {
     if (!val) return "";
     try {
@@ -256,7 +252,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     }
   };
 
-  // Helper: จัดการเวลา
   const fmtTime = (val: any) => {
     if (!val) return "";
     try {
@@ -274,10 +269,9 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     if (formBase64 && formBase64.length > 100)
       doc.addImage(formBase64, "JPEG", 0, 0, 210, 297);
 
-    doc.setTextColor(0, 0, 255); // สีน้ำเงิน
+    doc.setTextColor(0, 0, 255);
     doc.setDrawColor(0, 0, 255);
 
-    // Helper เขียนข้อความ
     const text = (
       str: string | undefined | null,
       x: number,
@@ -290,7 +284,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
       doc.text(val, x, y, { align });
     };
 
-    // Helper เช็คถูก
     const check = (x: number, y: number, isChecked: boolean) => {
       if (isChecked) {
         doc.setFontSize(24);
@@ -298,10 +291,8 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
       }
     };
 
-    // --- 1. Header ---
     text(ticket.id.substring(0, 12).toUpperCase(), 175, 24, 16, "center");
 
-    // --- 2. Requestor Info ---
     const job = ticket.job_type || "";
     check(30.5, 43.2, job.includes("เครื่องจักร"));
     check(30.5, 48, job.includes("อุปกรณ์"));
@@ -322,7 +313,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
 
     text(ticket.machine_name, 122, 59, 14);
 
-    // --- 3. Location ---
     check(117, 73, ticket.factory === "SAL01");
     check(160.5, 73, ticket.factory === "SAL02");
 
@@ -356,7 +346,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     text(ticket.issue_item, 15, 73.5, 14);
     if (ticket.issue_detail) text(ticket.issue_detail, 15, 80, 14);
 
-    // --- 4. Cause & Solution ---
     const causeDetail = doc.splitTextToSize(ticket.cause_detail || "", 90);
     text(causeDetail, 15, 115, 14);
 
@@ -377,7 +366,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     const solution = doc.splitTextToSize(ticket.solution || "", 90);
     text(solution, 15, 158, 14);
 
-    // --- 5. Spare Parts ---
     let partY = 158;
     if (ticket.spare_parts) {
       ticket.spare_parts.forEach((part, i) => {
@@ -391,7 +379,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     const prevention = doc.splitTextToSize(ticket.prevention || "", 90);
     text(prevention, 15, 202, 14);
 
-    // --- 6. Result ---
     const res = ticket.maintenance_result || "";
     const remarkToShow =
       ticket.result_remark || ticket.maintenance_result_other || "";
@@ -414,7 +401,6 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
       text(ticket.maintenance_result_other || "", 140, 225.5, 14);
     }
 
-    // --- MTTR ---
     if (ticket.start_time) {
       text(fmtDate(ticket.start_time), 35, 237, 14);
       text(fmtTime(ticket.start_time), 35, 242, 14);
@@ -433,38 +419,25 @@ const generateMaintenancePDF = (tickets: MaintenanceTicket[]) => {
     check(51, 263.5, ticket.mc_status === "Stop MC");
     check(51, 268.2, ticket.mc_status === "Not Stop");
 
-    // ==========================================
-    // SIGNATURES & DATES (แก้ไขส่วนนี้)
-    // ==========================================
-
-    // 1. ช่องผู้ซ่อม (Technician) - ช่องซ้ายสุด
     if (ticket.technician_name) {
       text(ticket.technician_name, 41, 274, 14, "center");
-
-      // ใช้วันที่ซ่อมเสร็จ (end_time) หรือวันที่ปัจจุบันถ้ายังไม่จบ
       const techDate = ticket.end_time || ticket.updated_at;
       if (techDate) {
         text(fmtDate(techDate), 41, 279, 14, "center");
       }
     }
 
-    // 2. ช่องผู้ตรวจสอบ (Requester / Verify) - ช่องกลาง
     if (ticket.requester_fullname) {
       text(ticket.requester_fullname, 100, 274, 14, "center");
-
-      // ใช้วันที่ Verified
       if (ticket.verified_at) {
         text(fmtDate(ticket.verified_at), 100, 279, 14, "center");
       }
     }
 
-    // 3. ช่องผู้อนุมัติ (Approver / Closed) - ช่องขวาสุด
     const approverName =
       ticket.approved_by || (ticket.status === "Closed" ? "Auto Approved" : "");
     if (approverName) {
       text(approverName, 165, 274, 14, "center");
-
-      // ใช้วันที่ Approved หรือ Closed
       const approvedDate = ticket.approved_at || ticket.closed_at;
       if (approvedDate) {
         text(fmtDate(approvedDate), 165, 279, 14, "center");
@@ -581,12 +554,13 @@ function ConfirmPasswordModal({
 }
 
 // ==========================================
-// 4. LOGIN & TICKET CARD
+// 4. LOGIN PAGE (แก้ไข: ลาย Pattern ใหญ่สะใจ)
 // ==========================================
 function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [loading, setLoading] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -615,41 +589,84 @@ function LoginPage({ onLogin }: { onLogin: (u: User) => void }) {
       setLoading(false);
     }
   };
+
+  // สร้าง Array ไอคอน (ลดจำนวนลงนิดหน่อยเพราะชิ้นใหญ่ขึ้น แต่ยังแน่นอยู่)
+  const patternItems = Array.from({ length: 40 }).map((_, i) => {
+    const Icon = i % 3 === 0 ? Wrench : i % 3 === 1 ? Hammer : Settings;
+    // ✅ ปรับขนาดให้ใหญ่ขึ้นมาก (จากเดิม 24/32 เป็น 64/96)
+    const size = i % 2 === 0 ? 64 : 96;
+    // สลับความจาง (เข้ม/จาง) ให้ดูมีมิติ
+    const opacity = i % 2 === 0 ? "opacity-10" : "opacity-5";
+
+    return (
+      <div
+        key={i}
+        className={`p-2 ${opacity} hover:opacity-20 transition-opacity duration-500`}
+      >
+        <Icon size={size} className="text-orange-400" strokeWidth={1.5} />
+      </div>
+    );
+  });
+
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-sm relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-orange-500"></div>
-        <div className="flex justify-center mb-6">
-          <div className="bg-orange-100 p-4 rounded-full ring-4 ring-orange-50">
-            <Wrench size={48} className="text-orange-600" />
-          </div>
+    <div className="fixed inset-0 bg-orange-50 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-3xl shadow-[0_20px_60px_-15px_rgba(249,115,22,0.3)] w-full max-w-sm relative overflow-hidden border border-orange-100">
+        {/* --- ส่วน Background Pattern (Wall of GIANT Icons) --- */}
+        {/* ใช้ -inset-32 เพื่อขยายพื้นที่ให้กว้างกว่ากล่อง แล้วหมุนเอียง */}
+        <div className="absolute -inset-32 z-0 flex flex-wrap content-center justify-center gap-2 transform -rotate-12 pointer-events-none">
+          {patternItems}
         </div>
-        <h1 className="text-2xl font-bold text-center mb-1 text-gray-800">
-          Maintenance App
-        </h1>
-        <form onSubmit={handleLogin} className="space-y-4 mt-8">
-          <input
-            className="w-full px-4 py-3 border rounded-xl bg-gray-50 focus:bg-white outline-none"
-            placeholder="Username"
-            value={u}
-            onChange={(e) => setU(e.target.value)}
-            autoFocus
-          />
-          <input
-            type="password"
-            className="w-full px-4 py-3 border rounded-xl bg-gray-50 focus:bg-white outline-none"
-            placeholder="Password"
-            value={p}
-            onChange={(e) => setP(e.target.value)}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-orange-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-orange-700 shadow-lg transition-all disabled:bg-gray-400"
-          >
-            {loading ? "Loading..." : "เข้าสู่ระบบ"}
-          </button>
-        </form>
+
+        {/* --- เนื้อหา Login (z-10 ต้องอยู่เหนือ Pattern) --- */}
+        <div className="relative z-10">
+          {/* แถบสีด้านบน */}
+          <div className="absolute -top-8 -left-8 w-[calc(100%+64px)] h-2 bg-gradient-to-r from-orange-500 to-red-500"></div>
+
+          <div className="flex justify-center mb-6 mt-2">
+            {/* Backdrop blur ช่วยให้โลโก้เด่นออกมาจากลายพื้นหลังที่ใหญ่ๆ */}
+            <div className="bg-orange-50/80 p-4 rounded-full ring-4 ring-orange-100 shadow-xl backdrop-blur-md">
+              <Wrench size={48} className="text-orange-600 drop-shadow-sm" />
+            </div>
+          </div>
+
+          {/* กล่องข้อความแบบมีพื้นหลังจางๆ เพื่อให้อ่านง่ายทับลายใหญ่ */}
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl py-3 px-4 mb-6 text-center border border-orange-50 shadow-sm">
+            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
+              Maintenance App
+            </h1>
+            <p className="text-xs text-gray-500 font-medium mt-1">
+              ระบบแจ้งซ่อมออนไลน์
+            </p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div>
+              <input
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-2xl bg-white/95 backdrop-blur-sm focus:bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-50/50 outline-none transition-all text-gray-700 placeholder-gray-400 shadow-sm"
+                placeholder="Username"
+                value={u}
+                onChange={(e) => setU(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div>
+              <input
+                type="password"
+                className="w-full px-4 py-3.5 border-2 border-gray-100 rounded-2xl bg-white/95 backdrop-blur-sm focus:bg-white focus:border-orange-400 focus:ring-4 focus:ring-orange-50/50 outline-none transition-all text-gray-700 placeholder-gray-400 shadow-sm"
+                placeholder="Password"
+                value={p}
+                onChange={(e) => setP(e.target.value)}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white p-4 rounded-2xl font-bold text-lg shadow-lg shadow-orange-200/80 hover:shadow-orange-300 hover:-translate-y-0.5 active:translate-y-0 active:shadow-none transition-all disabled:from-gray-300 disabled:to-gray-400 relative z-20"
+            >
+              {loading ? "กำลังตรวจสอบ..." : "เข้าสู่ระบบ"}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
@@ -683,16 +700,16 @@ function TicketCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`px-3 py-2.5 rounded-lg shadow-sm border transition-all active:scale-[0.99] cursor-pointer flex items-center justify-between gap-3 ${
+      className={`px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.98] cursor-pointer flex items-center justify-between gap-3 group ${
         isSelectionMode && isSelected
-          ? "border-orange-500 bg-orange-50 ring-1 ring-orange-500"
+          ? "border-orange-500 bg-orange-50/80 ring-2 ring-orange-200 shadow-sm"
           : isOverdue
-          ? "border-red-500 bg-red-50"
-          : "border-gray-200 bg-white hover:border-orange-300"
+          ? "border-red-300 bg-red-50/50 shadow-sm"
+          : "border-gray-100 bg-white hover:border-orange-300 hover:shadow-[0_4px_12px_rgba(249,115,22,0.08)]"
       }`}
     >
       {isSelectionMode && (
-        <div className="shrink-0 text-orange-600">
+        <div className="shrink-0 text-orange-600 transition-transform duration-200">
           {isSelected ? (
             <CheckSquare size={20} className="fill-orange-100" />
           ) : (
@@ -702,20 +719,25 @@ function TicketCard({
       )}
       <div className="flex items-center gap-3 overflow-hidden flex-1">
         <div
-          className={`w-2.5 h-2.5 shrink-0 rounded-full ${getStatusColor(
+          className={`w-3 h-3 shrink-0 rounded-full ${getStatusColor(
             ticket.status
-          )} shadow-sm`}
+          )} ring-2 ring-white`}
           title={getStatusLabel(ticket.status)}
         ></div>
+
         <div className="flex flex-col overflow-hidden w-full">
           <div className="flex items-center text-sm text-gray-800 truncate w-full">
-            <span className="font-bold shrink-0">{ticket.machine_name}</span>
-            <span className="mx-1.5 text-gray-300">|</span>
-            <span className="text-gray-600 truncate">{ticket.issue_item}</span>
+            <span className="font-bold shrink-0 text-gray-900">
+              {ticket.machine_name}
+            </span>
+            <span className="mx-2 text-gray-200">|</span>
+            <span className="text-gray-600 truncate font-medium">
+              {ticket.issue_item}
+            </span>
           </div>
           <div className="text-[10px] text-gray-500 flex items-center gap-2 mt-1 w-full overflow-hidden">
             {ticket.department && (
-              <span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold shrink-0">
+              <span className="bg-gray-50 text-gray-600 px-2 py-0.5 rounded-md border border-gray-100 font-semibold shrink-0">
                 {ticket.department}
               </span>
             )}
@@ -723,15 +745,14 @@ function TicketCard({
               <User size={10} />{" "}
               {(ticket.requester_fullname || "").split(" ")[0]}
             </span>
-            <span className="text-gray-300 shrink-0">|</span>
+            <span className="text-gray-200 shrink-0">|</span>
             <span
               className={`${
                 isOverdue ? "text-red-600 font-bold" : "text-gray-400"
               } shrink-0 tabular-nums`}
             >
               {formatDateTimeTH(ticket.created_at)}
-              {/* --- แสดงเลขที่ใบงานต่อท้ายเวลา --- */}
-              <span className="font-mono font-bold text-gray-400 ml-1">
+              <span className="font-mono text-gray-300 ml-1 font-normal group-hover:text-orange-400 transition-colors">
                 (#{ticket.id})
               </span>
             </span>
@@ -739,7 +760,10 @@ function TicketCard({
         </div>
       </div>
       {!isSelectionMode && (
-        <ChevronRight size={16} className="text-gray-300 shrink-0" />
+        <ChevronRight
+          size={18}
+          className="text-gray-200 group-hover:text-orange-400 group-hover:translate-x-1 transition-all shrink-0"
+        />
       )}
     </div>
   );
@@ -2280,7 +2304,7 @@ function SettingsModal({
 }
 
 // ==========================================
-// 9. MAIN DASHBOARD
+// 9. MAIN DASHBOARD (แก้ไข: ปรับ Tabs ให้พอดีจอ ไม่ต้องเลื่อน)
 // ==========================================
 function MaintenanceDashboard({
   user,
@@ -2359,7 +2383,6 @@ function MaintenanceDashboard({
         result = [];
     }
 
-    // เรียงตามแผนก (A-Z) -> แล้วค่อยเรียงตามเลขที่ใบงาน (Ticket ID)
     return result.sort((a, b) => {
       const deptCompare = (a.department || "").localeCompare(
         b.department || "",
@@ -2378,7 +2401,7 @@ function MaintenanceDashboard({
       label: "แจ้งซ่อม",
       icon: <ListTodo size={16} />,
       count: getCount("Open"),
-      color: "text-red-600",
+      color: "text-rose-600",
     },
     {
       id: 2,
@@ -2412,20 +2435,14 @@ function MaintenanceDashboard({
     },
   ];
 
-  // ฟังก์ชันลบใบงาน (ตัดระบบ Counter ออก เพราะใช้ระบบกวาดสายตา Max ID อยู่แล้ว)
   const handleDeleteTicket = (id: string, status: string) => {
     setGuardMessage("คุณต้องการลบรายการนี้ใช่หรือไม่?");
     setPendingAction(() => async () => {
       try {
         await runTransaction(db, async (transaction) => {
-          // อ้างอิงเอกสารใบงานที่ต้องการลบ
           const ticketRef = doc(db, "maintenance_tickets", id);
-
-          // สั่งลบข้อมูลผ่าน Transaction
           transaction.delete(ticketRef);
         });
-
-        // ล้างค่าสถานะที่เลือกไว้และแจ้งเตือนผู้ใช้
         setSelectedTicket(null);
         alert("ลบรายการเรียบร้อย");
       } catch (e) {
@@ -2499,15 +2516,27 @@ function MaintenanceDashboard({
   const canCreateTicket = user.role === "requester" || isSuperOrOwner;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-gray-50 overflow-hidden">
-      <div className="flex-none bg-white shadow-sm z-20 border-b">
+    <div
+      className="h-[100dvh] flex flex-col overflow-hidden font-sans relative"
+      style={{
+        backgroundColor: "#f9fafb",
+        backgroundImage: "radial-gradient(#e2e8f0 1.5px, transparent 1.5px)",
+        backgroundSize: "24px 24px",
+      }}
+    >
+      {/* Header */}
+      <div className="flex-none bg-white/90 backdrop-blur-md shadow-sm z-20 border-b border-gray-100 sticky top-0">
         <div className="max-w-7xl mx-auto w-full px-4 py-3 flex justify-between items-center">
           <div>
             <h1 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <Wrench className="text-orange-600" size={20} /> Maintenance
+              <div className="bg-orange-100 p-1.5 rounded-lg">
+                <Wrench className="text-orange-600" size={18} />
+              </div>
+              Maintenance
             </h1>
-            <p className="text-[10px] text-gray-500">
-              {user.fullname} ({user.role})
+            <p className="text-[10px] text-gray-400 font-medium ml-9 -mt-1">
+              {user.fullname} <span className="text-orange-300">•</span>{" "}
+              {user.role}
             </p>
           </div>
           <div className="flex gap-2">
@@ -2515,13 +2544,13 @@ function MaintenanceDashboard({
               <>
                 <button
                   onClick={() => setShowSettingsModal(true)}
-                  className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+                  className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 text-gray-600 border border-gray-100 transition-colors"
                 >
                   <Settings size={18} />
                 </button>
                 <button
                   onClick={() => setShowUserModal(true)}
-                  className="p-2 bg-orange-50 text-orange-600 rounded-full border border-orange-200 hover:bg-orange-100"
+                  className="p-2 bg-orange-50 text-orange-600 rounded-full border border-orange-100 hover:bg-orange-100 transition-colors"
                 >
                   <UserPlus size={18} />
                 </button>
@@ -2529,14 +2558,17 @@ function MaintenanceDashboard({
             )}
             <button
               onClick={onLogout}
-              className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"
+              className="p-2 bg-gray-50 rounded-full hover:bg-red-50 hover:text-red-500 text-gray-400 border border-gray-100 transition-colors"
             >
               <LogOut size={18} />
             </button>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto w-full overflow-x-auto no-scrollbar md:overflow-visible border-t border-gray-100">
-          <div className="flex px-2 min-w-max md:w-full md:justify-center">
+
+        {/* --- Tabs Bar (แก้ไขใหม่: ใช้ Grid 5 ช่อง เพื่อให้พอดีจอ ไม่ต้องเลื่อน) --- */}
+        <div className="max-w-7xl mx-auto w-full px-2 pt-1 pb-2">
+          {/* ใช้ grid-cols-5 เพื่อแบ่ง 5 ช่องเท่ากันเป๊ะ */}
+          <div className="grid grid-cols-5 gap-1.5">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -2545,29 +2577,43 @@ function MaintenanceDashboard({
                   setIsSelectionMode(false);
                   setSelectedIds(new Set());
                 }}
-                className={`flex flex-col items-center justify-center py-2 px-4 min-w-[80px] md:flex-1 md:flex-row md:gap-2 border-b-2 transition-all ${
+                // ตัด min-w ออก และลด padding (px-0.5) เพื่อให้ใส่ในจอมือถือเล็กๆ ได้
+                className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-xl transition-all duration-200 border h-full ${
                   activeTab === t.id
-                    ? `border-orange-500 ${t.color} bg-orange-50/50`
-                    : "border-transparent text-gray-400 hover:bg-gray-50"
+                    ? "bg-orange-50 border-orange-500 shadow-sm" // Active State
+                    : "bg-white border-orange-100 text-gray-400 hover:border-orange-300" // Inactive State
                 }`}
               >
-                <div className="relative">
-                  {t.icon}
+                <div className="relative mb-0.5">
+                  <span
+                    className={activeTab === t.id ? t.color : "text-gray-400"}
+                  >
+                    {/* ลดขนาด icon นิดนึงถ้าจอเล็ก */}
+                    {React.cloneElement(t.icon as React.ReactElement, {
+                      size: 18,
+                    })}
+                  </span>
                   {t.count > 0 && (
-                    <span className="absolute -top-2 -right-3 bg-red-500 text-white text-[9px] px-1.5 rounded-full shadow-sm">
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[15px] px-1 py-0.5 rounded-full shadow-sm font-bold min-w-[15px] leading-none">
                       {t.count}
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] md:text-sm font-bold mt-1 md:mt-0">
+                {/* ปรับขนาดตัวหนังสือให้เล็กลงนิดนึง และ truncate กันบรรทัดตก */}
+                <span
+                  className={`text-[9px] sm:text-[10px] font-bold truncate w-full text-center ${
+                    activeTab === t.id ? "text-orange-900" : "text-gray-400"
+                  }`}
+                >
                   {t.label}
                 </span>
               </button>
             ))}
           </div>
         </div>
+
         {activeTab === 5 && (
-          <div className="bg-gray-50 border-t py-2 px-4">
+          <div className="bg-gray-50/50 border-t border-gray-100 py-2 px-4 backdrop-blur-sm">
             <div className="max-w-7xl mx-auto flex flex-wrap gap-2 justify-between items-center">
               <div className="flex items-center gap-2">
                 <button
@@ -2575,10 +2621,10 @@ function MaintenanceDashboard({
                     setIsSelectionMode(!isSelectionMode);
                     setSelectedIds(new Set());
                   }}
-                  className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-all shadow-sm ${
                     isSelectionMode
-                      ? "bg-gray-700 text-white border-gray-700"
-                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                      ? "bg-gray-800 text-white border-gray-800"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <MousePointer2 size={14} />{" "}
@@ -2587,7 +2633,7 @@ function MaintenanceDashboard({
                 {isSelectionMode && (
                   <button
                     onClick={handleSelectAll}
-                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-300 hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200 hover:bg-gray-50 transition-colors shadow-sm"
                   >
                     <CheckSquare size={14} /> เลือกทั้งหมด
                   </button>
@@ -2597,7 +2643,7 @@ function MaintenanceDashboard({
                 <select
                   value={historyDept}
                   onChange={(e) => setHistoryDept(e.target.value)}
-                  className="text-xs border border-gray-300 rounded-lg px-2 py-1 outline-none bg-white text-gray-700 cursor-pointer hover:border-gray-400 max-w-[100px]"
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none bg-white text-gray-700 cursor-pointer hover:border-orange-300 focus:border-orange-500 transition-colors shadow-sm"
                 >
                   <option value="All">ทุกแผนก</option>
                   {allDepartments.map((dept) => (
@@ -2606,8 +2652,8 @@ function MaintenanceDashboard({
                     </option>
                   ))}
                 </select>
-                <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-300 shadow-sm">
-                  <Calendar size={14} className="text-gray-500" />
+                <div className="flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-sm hover:border-orange-300 transition-colors">
+                  <Calendar size={14} className="text-orange-500" />
                   <input
                     type="month"
                     className="text-xs text-gray-700 outline-none bg-transparent cursor-pointer w-[100px]"
@@ -2620,11 +2666,16 @@ function MaintenanceDashboard({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 pb-24 max-w-7xl mx-auto w-full custom-scrollbar">
+
+      <div className="flex-1 overflow-y-auto p-4 pb-24 max-w-7xl mx-auto w-full custom-scrollbar z-10">
         {filteredTickets.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-300">
-            <CheckCircle2 size={40} className="mb-2 opacity-20" />
-            <p className="text-sm">ไม่มีรายการในสถานะนี้</p>
+            <div className="bg-white/60 backdrop-blur-sm p-6 rounded-full shadow-sm mb-4 border border-white">
+              <CheckCircle2 size={40} className="text-gray-300" />
+            </div>
+            <p className="text-sm font-medium text-gray-400 bg-white/60 backdrop-blur-sm px-3 py-1 rounded-full">
+              ไม่มีรายการในสถานะนี้
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -2644,25 +2695,30 @@ function MaintenanceDashboard({
           </div>
         )}
       </div>
+
       {!isSelectionMode && canCreateTicket && (
         <button
           onClick={() => setShowCreate(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-gray-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-gray-800 z-30 active:scale-95 transition-transform"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-gray-900 to-black text-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.3)] flex items-center justify-center hover:scale-110 z-30 active:scale-95 transition-all border border-gray-700 group"
         >
-          <Hammer size={24} />
+          <Hammer
+            size={24}
+            className="group-hover:rotate-12 transition-transform"
+          />
         </button>
       )}
+
       {isSelectionMode && selectedIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom duration-200 flex gap-3">
           <button
             onClick={handleExportPreview}
-            className="bg-white text-blue-600 border border-blue-100 px-6 py-3 rounded-full font-bold text-sm hover:bg-blue-50 shadow-xl flex items-center gap-2"
+            className="bg-white text-gray-700 border border-gray-200 px-6 py-3 rounded-full font-bold text-sm hover:bg-gray-50 shadow-xl flex items-center gap-2"
           >
             <Eye size={18} /> Preview
           </button>
           <button
             onClick={handleDownloadPDF}
-            className="bg-blue-600 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-blue-700 shadow-xl flex items-center gap-2"
+            className="bg-gray-900 text-white px-6 py-3 rounded-full font-bold text-sm hover:bg-black shadow-xl flex items-center gap-2"
           >
             <Download size={18} /> Download
           </button>
@@ -2676,6 +2732,7 @@ function MaintenanceDashboard({
           )}
         </div>
       )}
+
       {selectedTicket && (
         <TicketDetailModal
           ticket={selectedTicket}
